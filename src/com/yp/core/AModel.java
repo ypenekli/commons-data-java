@@ -81,7 +81,7 @@ public abstract class AModel<T> {
 	}
 
 	@SuppressWarnings("unchecked")
-	public AModel(String pServer) {
+	protected AModel(String pServer) {
 		server = pServer;
 		confServer = BaseConstants.getConfig(pServer);
 		hosturl = BaseConstants.getConfig(confServer + DbHandler.DB_URL);
