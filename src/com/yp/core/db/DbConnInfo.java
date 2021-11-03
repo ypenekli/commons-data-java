@@ -83,8 +83,8 @@ public class DbConnInfo {
 
 	@Override
 	public boolean equals(final Object obj) {
-		if (obj instanceof DbConnInfo) {
-			return getKey().equals(((DbConnInfo) obj).getKey());
+		if (obj instanceof DbConnInfo dbConnInfo) {
+			return getKey().equals(dbConnInfo.getKey());
 		}
 		return super.equals(obj);
 	}

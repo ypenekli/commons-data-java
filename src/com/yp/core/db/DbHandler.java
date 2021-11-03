@@ -59,6 +59,7 @@ public class DbHandler<T> implements IHandler<T> {
 	public static final String VALUES = " VALUES ";
 	public static final String SET = " SET ";
 	public static final String AND = " AND ";
+	public static final String COUNT = " COUNT(*) AS TOTAL ";
 	public static final String REGEX_SCHEMA_SEPERATOR = "~KA~";
 
 	private Connection connection;
@@ -133,8 +134,8 @@ public class DbHandler<T> implements IHandler<T> {
 			setPassword(BaseConstants.getConfig(server + DB_PASSWORD));
 
 			try {
-				Class.forName(driver).newInstance();
-			} catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
+				Class.forName(driver);//.newInstance();
+			} catch (ClassNotFoundException e) {
 				Logger.getLogger(MyLogger.NAME).log(Level.SEVERE, e.getMessage(), e);
 			}
 
