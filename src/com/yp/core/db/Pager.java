@@ -1,47 +1,47 @@
 package com.yp.core.db;
 
 public class Pager {
-	private int offset;
-	private int limit;
-	private int count;
+	private int pageIndex;
+	private int pageSize;
+	private int length;
 
 	public Pager() {
 		super();
-		offset = 0;
-		limit = -1;
-		count = -1;
+		pageIndex = 0;
+		pageSize = -1;
+		length = -1;
 
 	}
 
-	public Pager(int pOffset, int pLimit, int pCount) {
+	public Pager(int pPageIndex, int pLimit, int pCount) {
 		this();
-		offset = pOffset;
-		limit = pLimit;
-		count = pCount;
+		pageIndex = pPageIndex;
+		pageSize = pLimit;
+		length = pCount;
 	}
 
-	public int getOffset() {
-		return offset;
+	public int getPageIndex() {
+		return pageIndex;
 	}
 
-	public void setOffset(int pOffset) {
-		offset = pOffset;
+	public void setPageIndex(int pPageIndex) {
+		pageIndex = pPageIndex;
 	}
 
-	public int getLimit() {
-		return limit;
+	public int getPageSize() {
+		return pageSize;
 	}
 
-	public void setLimit(int pLimit) {
-		limit = pLimit;
+	public void setPageSize(int pLimit) {
+		pageSize = pLimit;
 	}
 
-	public int getCount() {
-		return count;
+	public int getLength() {
+		return length;
 	}
 
-	public void setCount(int pCount) {
-		count = pCount;
+	public void setLength(int pCount) {
+		length = pCount;
 	}
 
 }
