@@ -8,6 +8,7 @@ public class Result<T> implements IResult<T> {
 
 	protected String message;
 	protected int errorcode;
+	protected int dataLength;
 
 	protected T data;
 
@@ -60,4 +61,15 @@ public class Result<T> implements IResult<T> {
 	public void setErrorcode(int pErrorcode) {
 		errorcode = pErrorcode;
 	}
+    
+	@Override
+    public int getDataLength()
+    {
+        return dataLength;
+    }
+    
+    public void setDataLength(int pDataLength)
+    {
+        dataLength = pDataLength;
+    }
 }

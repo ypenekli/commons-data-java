@@ -41,11 +41,15 @@ import com.yp.core.excel.AXlsAktar;
 import com.yp.core.log.MyLogger;
 
 public class JsonHandler<T> implements IHandler<T> {
-	private String url, callerClassName;
+	private String url;
+	private String callerClassName;
 	private Class<T> callerClass;
 	protected static final String CLASS_NAME = "type";
 	protected static final String PAGER = "pager";
 	private static final String AUTHORIZATION = "Authorization";
+	private static final String FIND_ONE = "findOne@";
+	private static final String FIND_BY = "findBy@";
+
 	private static String token = "";
 
 	@SuppressWarnings({ "rawtypes", "unchecked" })
@@ -96,13 +100,11 @@ public class JsonHandler<T> implements IHandler<T> {
 			json = org.apache.commons.io.IOUtils.toString(new GZIPInputStream(is), StandardCharsets.UTF_8);
 		} else
 			json = org.apache.commons.io.IOUtils.toString(is, StandardCharsets.UTF_8);
-//		System.out.println("json :" + json);
 		return json;
 	}
 
 	// downloadAnyFromServer
-	public List<T> getAny(String pFnName, Pager pPager, FnParam[] pParams) throws IOException {
-
+	public IResult<List<T>> getAny(String pFnName, Pager pPager, FnParam[] pParams) throws IOException {
 		GsonBuilder gb = new GsonBuilder();
 		gb.registerTypeAdapter(IElement.class, new ElementSerializer());
 		gb.setFieldNamingPolicy(FieldNamingPolicy.IDENTITY);
@@ -125,7 +127,6 @@ public class JsonHandler<T> implements IHandler<T> {
 		String in = String.format(JSON_FORMAT, gson.toJson(params));
 
 		HttpURLConnection conn = getConnection(pFnName, HTTP_METHOD.GET);
-		// System.out.println("URL :" + conn.getURL().toString() + "/" + in);
 
 		OutputStream os = conn.getOutputStream();
 		os.write(in.getBytes(StandardCharsets.UTF_8));
@@ -134,19 +135,20 @@ public class JsonHandler<T> implements IHandler<T> {
 
 		token = conn.getHeaderField(AUTHORIZATION);
 		int responseCode = conn.getResponseCode();
-		List<T> result = null;
+		IResult<List<T>> result = null;
 		if (responseCode == HttpURLConnection.HTTP_OK) {
 			InputStream is = conn.getInputStream();
-			// String res = org.apache.commons.io.IOUtils.toString(is,
-			// StandardCharsets.UTF_8);
-
 			String res = getJsonString(is, conn.getContentEncoding());
-			Type type = TypeToken.getParameterized(ArrayList.class, entityType).getType();
-			result = gson.fromJson(res, type);
+			Type resultType = TypeToken
+					.getParameterized(Result.class, TypeToken.getParameterized(ArrayList.class, entityType).getType())
+					.getType();
+
+			result = gson.fromJson(res, resultType);
 			is.close();
-			if (result != null) {
+			List<T> list = null;
+			if (result != null && (list = result.getData()) != null) {
 				int i = 1;
-				for (T e : result) {
+				for (T e : list) {
 					IDataEntity vs = (IDataEntity) e;
 					vs.checkValues();
 					vs.setRowNum(i);
@@ -159,7 +161,7 @@ public class JsonHandler<T> implements IHandler<T> {
 	}
 
 	// downloadAnyFromServer
-	public List<IDataEntity> getAny(String pFnName, Type pOutType, Pager pPager, FnParam... pParams)
+	public IResult<List<IDataEntity>> getAny(String pFnName, Type pOutType, Pager pPager, FnParam... pParams)
 			throws IOException {
 
 		GsonBuilder gb = new GsonBuilder();
@@ -182,7 +184,6 @@ public class JsonHandler<T> implements IHandler<T> {
 
 		String in = String.format(JSON_FORMAT, gson.toJson(params));
 		HttpURLConnection conn = getConnection(pFnName, HTTP_METHOD.GET);
-		// System.out.println("URL :" + conn.getURL().toString() + "/" + in);
 
 		OutputStream os = conn.getOutputStream();
 		os.write(in.getBytes(StandardCharsets.UTF_8));
@@ -191,18 +192,20 @@ public class JsonHandler<T> implements IHandler<T> {
 
 		token = conn.getHeaderField(AUTHORIZATION);
 		int responseCode = conn.getResponseCode();
-		List<IDataEntity> result = null;
+		IResult<List<IDataEntity>> result = null;
 		if (responseCode == HttpURLConnection.HTTP_OK) {
 			InputStream is = conn.getInputStream();
-			// String res = org.apache.commons.io.IOUtils.toString(is,
-			// StandardCharsets.UTF_8);
-			String res = getJsonString(is, conn.getContentEncoding());
-			Type type = TypeToken.getParameterized(ArrayList.class, pOutType).getType();
-			result = gson.fromJson(res, type);
+			String res = getJsonString(is, conn.getContentEncoding());			
+			Type resultType = TypeToken
+					.getParameterized(Result.class, TypeToken.getParameterized(ArrayList.class, pOutType).getType())
+					.getType();
+
+			result = gson.fromJson(res, resultType);
 			is.close();
-			if (result != null) {
+			List<IDataEntity> list = null;
+			if (result != null && (list = result.getData()) != null) {
 				int i = 1;
-				for (IDataEntity vs : result) {
+				for (IDataEntity vs : list) {
 					vs.checkValues();
 					vs.setRowNum(i);
 					i += 1;
@@ -237,7 +240,6 @@ public class JsonHandler<T> implements IHandler<T> {
 
 		String in = String.format(JSON_FORMAT, gson.toJson(params));
 		HttpURLConnection conn = getConnection(pFnName, HTTP_METHOD.GET);
-		// System.out.println("URL :" + conn.getURL().toString() + "/" + in);
 		OutputStream os = conn.getOutputStream();
 		os.write(in.getBytes(StandardCharsets.UTF_8));
 		os.flush();
@@ -248,8 +250,6 @@ public class JsonHandler<T> implements IHandler<T> {
 		T result = null;
 		if (responseCode == HttpURLConnection.HTTP_OK) {
 			InputStream is = conn.getInputStream();
-			// T result = gson.fromJson(new InputStreamReader(is, StandardCharsets.UTF_8),
-			// entityType);
 			String res = getJsonString(is, conn.getContentEncoding());
 			result = gson.fromJson(res, entityType);
 			is.close();
@@ -276,7 +276,6 @@ public class JsonHandler<T> implements IHandler<T> {
 		gb.setFieldNamingPolicy(FieldNamingPolicy.IDENTITY);
 
 		Gson gson = gb.create();
-		// String in = gson.toJson(pIn);
 		String in = String.format(JSON_FORMAT, gson.toJson(params));
 		HttpURLConnection conn = getConnection(pFnName, HTTP_METHOD.POST);
 
@@ -292,8 +291,6 @@ public class JsonHandler<T> implements IHandler<T> {
 		T result = null;
 		if (responseCode == HttpURLConnection.HTTP_OK) {
 			InputStream is = conn.getInputStream();
-			// T result = gson.fromJson(new InputStreamReader(is, StandardCharsets.UTF_8),
-			// entityType);
 			String res = getJsonString(is, conn.getContentEncoding());
 			result = gson.fromJson(res, entityType);
 			is.close();
@@ -338,8 +335,6 @@ public class JsonHandler<T> implements IHandler<T> {
 		IDataEntity result = null;
 		if (responseCode == HttpURLConnection.HTTP_OK) {
 			InputStream is = conn.getInputStream();
-			// IDataEntity result = gson.fromJson(new InputStreamReader(is,
-			// StandardCharsets.UTF_8), pOutType);
 			String res = getJsonString(is, conn.getContentEncoding());
 			result = gson.fromJson(res, pOutType);
 			is.close();
@@ -379,8 +374,6 @@ public class JsonHandler<T> implements IHandler<T> {
 		Result<List<T>> result = null;
 		if (responseCode == HttpURLConnection.HTTP_OK) {
 			InputStream is = conn.getInputStream();
-			// String out = org.apache.commons.io.IOUtils.toString(is,
-			// StandardCharsets.UTF_8);
 			String out = getJsonString(is, conn.getContentEncoding());
 			result = gson.fromJson(out, entityType);
 			is.close();
@@ -402,7 +395,6 @@ public class JsonHandler<T> implements IHandler<T> {
 		gb.setFieldNamingPolicy(FieldNamingPolicy.IDENTITY);
 
 		Gson gson = gb.create();
-		// String in = gson.toJson(pIn);
 		String in = String.format(JSON_FORMAT, gson.toJson(params));
 
 		HttpURLConnection conn = getConnection(pFnName, HTTP_METHOD.POST);
@@ -418,8 +410,6 @@ public class JsonHandler<T> implements IHandler<T> {
 		IResult<String> result = null;
 		if (responseCode == HttpURLConnection.HTTP_OK) {
 			InputStream is = conn.getInputStream();
-			// String out = org.apache.commons.io.IOUtils.toString(is,
-			// StandardCharsets.UTF_8);
 			String out = getJsonString(is, conn.getContentEncoding());
 			result = gson.fromJson(out, entityType);
 			is.close();
@@ -478,7 +468,6 @@ public class JsonHandler<T> implements IHandler<T> {
 		gb.setFieldNamingPolicy(FieldNamingPolicy.IDENTITY);
 
 		Gson gson = gb.create();
-		// String in = gson.toJson(pIn);
 		String in = String.format(JSON_FORMAT, gson.toJson(params));
 
 		HttpURLConnection conn = getConnection(pFnName, HTTP_METHOD.POST);
@@ -492,8 +481,6 @@ public class JsonHandler<T> implements IHandler<T> {
 		IResult<T> result = null;
 		if (responseCode == HttpURLConnection.HTTP_OK) {
 			InputStream is = conn.getInputStream();
-			// String out = org.apache.commons.io.IOUtils.toString(is,
-			// StandardCharsets.UTF_8);
 			String out = getJsonString(is, conn.getContentEncoding());
 			result = gson.fromJson(out, entityType);
 			is.close();
@@ -513,7 +500,6 @@ public class JsonHandler<T> implements IHandler<T> {
 		gb.setFieldNamingPolicy(FieldNamingPolicy.IDENTITY);
 
 		Gson gson = gb.create();
-		// String in = gson.toJson(pIn);
 		String in = String.format(JSON_FORMAT, gson.toJson(params));
 
 		HttpURLConnection conn = getConnection(pFnName, HTTP_METHOD.POST);
@@ -527,8 +513,6 @@ public class JsonHandler<T> implements IHandler<T> {
 		IResult<IDataEntity> result = null;
 		if (responseCode == HttpURLConnection.HTTP_OK) {
 			InputStream is = conn.getInputStream();
-			// String out = org.apache.commons.io.IOUtils.toString(is,
-			// StandardCharsets.UTF_8);
 			String out = getJsonString(is, conn.getContentEncoding());
 			result = gson.fromJson(out, entityType);
 			is.close();
@@ -547,7 +531,6 @@ public class JsonHandler<T> implements IHandler<T> {
 		gb.setFieldNamingPolicy(FieldNamingPolicy.IDENTITY);
 
 		Gson gson = gb.create();
-		// String in = gson.toJson(pIn);
 		String in = String.format(JSON_FORMAT, gson.toJson(params));
 
 		HttpURLConnection conn = getConnection(pFnName, HTTP_METHOD.POST);
@@ -603,7 +586,7 @@ public class JsonHandler<T> implements IHandler<T> {
 	@Override
 	public IDataEntity findOne(DbCommand pQuery, Type pOutType) {
 		IDataEntity result = null;
-		String dFnName = "findOne@" + pQuery.getName();
+		String dFnName = FIND_ONE + pQuery.getName();
 		try {
 			result = getOne(dFnName, pOutType, pQuery.getParams());
 		} catch (IOException e) {
@@ -615,7 +598,7 @@ public class JsonHandler<T> implements IHandler<T> {
 
 	@Override
 	public T findOne(DbCommand pQuery) {
-		String dFnName = "findOne@" + pQuery.getName();
+		String dFnName = FIND_ONE + pQuery.getName();
 		try {
 			return getOne(dFnName, pQuery.getParams());
 		} catch (IOException e) {
@@ -626,26 +609,54 @@ public class JsonHandler<T> implements IHandler<T> {
 
 	@Override
 	public List<IDataEntity> findAny(DbCommand pQuery, Type pOutType) {
-		String dFnName = "findBy@" + pQuery.getName();
-		List<IDataEntity> list = null;
+		String dFnName = FIND_BY + pQuery.getName();
+		IResult<List<IDataEntity>> result = new Result<>();
 		try {
-			list = getAny(dFnName, pOutType, pQuery.getPager(), pQuery.getParams());
+			result = getAny(dFnName, pOutType, new Pager(), pQuery.getParams());
 		} catch (IOException e) {
 			Logger.getLogger(MyLogger.NAME).log(Level.SEVERE, e.getMessage(), e);
 		}
-		return list;
+		return result.getData();
 	}
 
 	@Override
 	public List<T> findAny(DbCommand pQuery) {
-		String dFnName = "findBy@" + pQuery.getName();
-		List<T> list = null;
+		String dFnName = FIND_BY + pQuery.getName();
+		IResult<List<T>> result = new Result<>();
 		try {
-			list = getAny(dFnName, pQuery.getPager(), pQuery.getParams());
+			result = getAny(dFnName, new Pager(), pQuery.getParams());
 		} catch (IOException e) {
 			Logger.getLogger(MyLogger.NAME).log(Level.SEVERE, e.getMessage(), e);
 		}
-		return list;
+		return result.getData();
+	}
+
+	@Override
+	public IResult<List<IDataEntity>> findAny(DbCommand pQuery, Type pOutType, Pager pPager) {
+		String dFnName = FIND_BY + pQuery.getName();
+		IResult<List<IDataEntity>> res = new Result<>();
+		try {
+			res = getAny(dFnName, pOutType, pPager, pQuery.getParams());
+		} catch (IOException e) {
+			res.setSuccess(false);
+			res.setMessage(BaseConstants.MESSAGE_READ_ERROR);
+			Logger.getLogger(MyLogger.NAME).log(Level.SEVERE, e.getMessage(), e);
+		}
+		return res;
+	}
+
+	@Override
+	public IResult<List<T>> findAny(DbCommand pQuery, Pager pPager) {
+		String dFnName = FIND_BY + pQuery.getName();
+		IResult<List<T>> res = new Result<>();
+		try {
+			res = getAny(dFnName, pPager, pQuery.getParams());
+		} catch (IOException e) {
+			res.setSuccess(false);
+			res.setMessage(BaseConstants.MESSAGE_READ_ERROR);
+			Logger.getLogger(MyLogger.NAME).log(Level.SEVERE, e.getMessage(), e);
+		}
+		return res;
 	}
 
 	@Override

@@ -61,6 +61,7 @@ public class BaseConstants {
 	public static final String MESSAGE_DATA_TRANSFER_ERROR_NODATA;
 	public static final String MESSAGE_DELETE_SUCCEEDED;
 	public static final String MESSAGE_DELETE_ERROR;
+	public static final String MESSAGE_READ_ERROR;
 	public static final String MESSAGE_CONNECTION_ERROR;
 	public static final String MESSAGE_FIELD_EMPTY_WARNING;
 	public static final String NEW;
@@ -145,6 +146,7 @@ public class BaseConstants {
 		MESSAGE_DATA_TRANSFER_ERROR_NODATA = getString("1041");
 		MESSAGE_DELETE_SUCCEEDED = getString("1023");
 		MESSAGE_DELETE_ERROR = getString("1024");
+		MESSAGE_READ_ERROR = getString("1042");
 		MESSAGE_CONNECTION_ERROR = getString("Hata.Baglanti");
 		MESSAGE_FIELD_EMPTY_WARNING = getString("1022");
 		NEW = getString("Addnew");

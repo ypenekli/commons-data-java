@@ -7,6 +7,7 @@ import com.yp.core.db.DbCommand;
 import com.yp.core.db.DbConnInfo;
 import com.yp.core.db.IExport;
 import com.yp.core.db.OnExportListener;
+import com.yp.core.db.Pager;
 import com.yp.core.entity.IDataEntity;
 import com.yp.core.entity.IResult;
 import com.yp.core.excel.AXlsAktar;
@@ -14,6 +15,10 @@ import com.yp.core.excel.AXlsAktar;
 public interface IHandler<T> {	
 
 	T find(T pDataEntity);
+
+	IResult<List<T>> findAny(DbCommand pQuery, Pager pPager);
+
+	IResult<List<IDataEntity>> findAny(DbCommand pQuery, Type pOutType, Pager pPager);
 
 	List<T> findAny(DbCommand pQuery);
 

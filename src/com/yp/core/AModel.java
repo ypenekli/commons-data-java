@@ -39,6 +39,7 @@ import com.yp.core.db.DbConnInfo;
 import com.yp.core.db.DbHandler;
 import com.yp.core.db.IExport;
 import com.yp.core.db.OnExportListener;
+import com.yp.core.db.Pager;
 import com.yp.core.entity.EntityFactory;
 import com.yp.core.entity.IDataEntity;
 import com.yp.core.entity.IResult;
@@ -328,6 +329,14 @@ public abstract class AModel<T> {
 
 	public List<T> findAny(final DbCommand pQuery) {
 		return handler.findAny(pQuery);
+	}
+
+	public IResult<List<IDataEntity>> findAny(final DbCommand pQuery, final Type pOutType, final Pager pPager) {
+		return handler.findAny(pQuery, pOutType, pPager);
+	}
+
+	public IResult<List<T>> findAny(final DbCommand pQuery, final Pager pPager) {
+		return handler.findAny(pQuery, pPager);
 	}
 
 	public IResult<T> save(final T pData) {

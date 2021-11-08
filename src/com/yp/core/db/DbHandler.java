@@ -53,13 +53,13 @@ public class DbHandler<T> implements IHandler<T> {
 	public static final String SELECT = " SELECT ";
 	public static final String FROM = " FROM ";
 	public static final String SELECT_FROM = " SELECT * FROM ";
+	public static final String SELECT_COUNT = " SELECT COUNT(*) AS COUNT ";
 	public static final String SELECT_COUNT_FROM = " SELECT COUNT(*) AS COUNT FROM ";
 	public static final String UPDATE = " UPDATE ";
 	public static final String DELETE = " DELETE ";
 	public static final String VALUES = " VALUES ";
 	public static final String SET = " SET ";
 	public static final String AND = " AND ";
-	public static final String COUNT = " COUNT(*) AS TOTAL ";
 	public static final String REGEX_SCHEMA_SEPERATOR = "~KA~";
 
 	private Connection connection;
@@ -72,6 +72,7 @@ public class DbHandler<T> implements IHandler<T> {
 	private String[] fieldNames;
 
 	private String query;
+	private String countQuery;
 
 	private Class<? extends AModel<T>> callerClass;
 
@@ -84,6 +85,8 @@ public class DbHandler<T> implements IHandler<T> {
 	private static final String TEST = "lombar@Set#Sonra";
 	private static final String USER = "user";
 	private static final String PWD = "password";
+
+	private static final String COUNT = "count";
 
 	public DbHandler(Class<? extends AModel<T>> pCallerClass, String pServer) {
 		builtConnection(pServer, null);
@@ -134,7 +137,7 @@ public class DbHandler<T> implements IHandler<T> {
 			setPassword(BaseConstants.getConfig(server + DB_PASSWORD));
 
 			try {
-				Class.forName(driver);//.newInstance();
+				Class.forName(driver);// .newInstance();
 			} catch (ClassNotFoundException e) {
 				Logger.getLogger(MyLogger.NAME).log(Level.SEVERE, e.getMessage(), e);
 			}
@@ -195,11 +198,28 @@ public class DbHandler<T> implements IHandler<T> {
 		return de;
 	}
 
+	private IDataEntity findCount() {
+		IDataEntity de = null;
+		if (connection != null) {
+			try (PreparedStatement ps = connection.prepareStatement(countQuery);) {
+				for (int i = 0; i < paramList.size(); i++) {
+					ps.setObject(i + 1, valueList.get(i));
+				}
+				de = fetchData(ps, DataEntity.class);
+				ps.clearParameters();
+
+			} catch (SQLException e) {
+				Logger.getLogger(MyLogger.NAME).log(Level.SEVERE, e.getMessage(), e);
+			}
+		}
+		return de;
+	}
+
 	@SuppressWarnings("unchecked")
 	@Override
 	public T findOne(DbCommand pQuery) {
 		IDataEntity de = null;
-		refreshValues(pQuery);
+		refreshValues(pQuery, false);
 		if (query != null) {
 			boolean closed = connection == null;
 			try {
@@ -218,7 +238,7 @@ public class DbHandler<T> implements IHandler<T> {
 	@Override
 	public IDataEntity findOne(DbCommand pQuery, Type pOutType) {
 		IDataEntity de = null;
-		refreshValues(pQuery);
+		refreshValues(pQuery, false);
 		if (query != null) {
 			boolean closed = connection == null;
 			try {
@@ -255,7 +275,7 @@ public class DbHandler<T> implements IHandler<T> {
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	public List<T> findAny(DbCommand pQuery) {
 		List<T> list = null;
-		refreshValues(pQuery);
+		refreshValues(pQuery, false);
 		if (query != null) {
 			boolean closed = connection == null;
 			try {
@@ -275,7 +295,7 @@ public class DbHandler<T> implements IHandler<T> {
 	@Override
 	public List<IDataEntity> findAny(DbCommand pQuery, Type pOutType) {
 		List<IDataEntity> list = null;
-		refreshValues(pQuery);
+		refreshValues(pQuery, false);
 		if (query != null) {
 			boolean closed = connection == null;
 			try {
@@ -289,6 +309,72 @@ public class DbHandler<T> implements IHandler<T> {
 			}
 		}
 		return list;
+	}
+
+	@Override
+	@SuppressWarnings({ "unchecked", "rawtypes" })
+	public IResult<List<T>> findAny(DbCommand pQuery, Pager pPager) {
+		IResult<List<T>> result = new Result<>();
+		int count = pPager.getLength();
+		refreshValues(pQuery, count < 0);
+
+		if (query != null) {
+			boolean closed = connection == null;
+			try {
+				if (closed)
+					connection = getConnection();
+
+				if (count < 0) {
+					IDataEntity c = findCount();
+					if (c != null && !c.isNull(COUNT)) {
+						count = (int) c.get(COUNT);
+						result.setDataLength(count);
+						pPager.setLength(count);
+					}
+				}
+				result.setData((List) readAny(getTypeParameterClass()));
+				result.setSuccess(true);
+			} catch (SQLException e) {
+				result.setSuccess(false);
+				result.setMessage(BaseConstants.MESSAGE_CONNECTION_ERROR);
+				Logger.getLogger(MyLogger.NAME).log(Level.SEVERE, e.getMessage(), e);
+			} finally {
+				close(closed);
+			}
+		}
+		return result;
+	}
+
+	@Override
+	public IResult<List<IDataEntity>> findAny(DbCommand pQuery, Type pOutType, Pager pPager) {
+		IResult<List<IDataEntity>> result = new Result<>();
+		int count = pPager.getLength();
+		refreshValues(pQuery, count < 0);
+		if (query != null) {
+			boolean closed = connection == null;
+			try {
+				if (closed)
+					connection = getConnection();
+
+				if (count < 0) {
+					IDataEntity c = findCount();
+					if (c != null && !c.isNull("count")) {
+						count = (int) c.get("count");
+						result.setDataLength(count);
+						pPager.setLength(count);
+					}
+				}
+				result.setData(readAny(pOutType));
+				result.setSuccess(true);
+			} catch (SQLException e) {
+				result.setSuccess(false);
+				result.setMessage(BaseConstants.MESSAGE_CONNECTION_ERROR);
+				Logger.getLogger(MyLogger.NAME).log(Level.SEVERE, e.getMessage(), e);
+			} finally {
+				close(closed);
+			}
+		}
+		return result;
 	}
 
 	@SuppressWarnings("unchecked")
@@ -495,7 +581,7 @@ public class DbHandler<T> implements IHandler<T> {
 	@Override
 	public IResult<String> execute(DbCommand pQuery) {
 		IResult<String> result = new Result<>();
-		refreshValues(pQuery);
+		refreshValues(pQuery, false);
 		if (query != null) {
 			boolean closed = connection == null;
 			try {
@@ -528,7 +614,7 @@ public class DbHandler<T> implements IHandler<T> {
 					connection.setAutoCommit(false);
 
 					for (int j = 0; j < pQueries.length; j++) {
-						refreshValues(pQueries[j]);
+						refreshValues(pQueries[j], false);
 						if (query != null) {
 							execute(result);
 						}
@@ -697,12 +783,12 @@ public class DbHandler<T> implements IHandler<T> {
 	}
 
 	public static String decrypt(String pString) {
-		StringEncrypter se = new StringEncrypter(TEST);		
+		StringEncrypter se = new StringEncrypter(TEST);
 		return se.decrypt(pString);
 	}
 
 	public static String encrypt(String pString) {
-		StringEncrypter se = new StringEncrypter(TEST);		
+		StringEncrypter se = new StringEncrypter(TEST);
 		return se.encrypt(pString);
 	}
 
@@ -794,7 +880,7 @@ public class DbHandler<T> implements IHandler<T> {
 		}
 	}
 
-	private void refreshValues(DbCommand pQuery) {
+	private void refreshValues(DbCommand pQuery, boolean pCount) {
 		query = null;
 		valueList.clear();
 		paramList.clear();
@@ -806,8 +892,12 @@ public class DbHandler<T> implements IHandler<T> {
 			}
 		query = pQuery.getQuery().replace(REGEX_SCHEMA_SEPERATOR, schemaSeperator);
 		for (Iterator<Entry<Object, Object>> iterator = schemas.entrySet().iterator(); iterator.hasNext();) {
-			Entry<Object, Object> e =  iterator.next();
-			query = query.replaceAll((String)e.getKey(), (String)e.getValue());
+			Entry<Object, Object> e = iterator.next();
+			query = query.replaceAll((String) e.getKey(), (String) e.getValue());
+		}
+		if (pCount) {
+			countQuery = SELECT_COUNT + query.substring(query.indexOf(FROM));
+			System.out.println("select count :" + countQuery);
 		}
 	}
 
@@ -1005,12 +1095,13 @@ public class DbHandler<T> implements IHandler<T> {
 
 				String sourceQuery = pTransfer.getQuery();
 				String souceTable = pTransfer.getSourceSchema() + schemaSeperator + pTransfer.getSourceTable();
-				String targetTable = pTransfer.getTargetSchema() + pTarget.getDbSeperator() + pTransfer.getTargetTable();
+				String targetTable = pTransfer.getTargetSchema() + pTarget.getDbSeperator()
+						+ pTransfer.getTargetTable();
 				if (StringTool.isNull(sourceQuery) || "*".equals(sourceQuery))
 					sourceQuery = SELECT_FROM + souceTable;
 
 				if (!StringTool.isNull(sourceQuery)) {
-					DbCommand countQuery = new DbCommand(SELECT_COUNT_FROM + souceTable);
+					DbCommand countQuery = new DbCommand(SELECT_COUNT_FROM  +  souceTable);
 					IDataEntity vs = (IDataEntity) findOne(countQuery);
 					if (vs != null && !vs.isNull("count")) {
 						Object value = vs.get("count");
@@ -1022,7 +1113,7 @@ public class DbHandler<T> implements IHandler<T> {
 					}
 					if (count != null && count > 0) {
 						if (pTransfer.isDeleteTargetTableRows()) {
-							String deleteQuery = DELETE + FROM + targetTable;							
+							String deleteQuery = DELETE + FROM + targetTable;
 							try (PreparedStatement targetPs = targetConn.prepareStatement(deleteQuery)) {
 								targetPs.execute();
 							}
@@ -1054,8 +1145,8 @@ public class DbHandler<T> implements IHandler<T> {
 	private static final String FORMATED_EXPORT_MESSAGE = "%s: %s";
 	private static final String FORMATED_EXPORT_MESSAGE2 = "%s: %s%s";
 
-	private IResult<IExport> export(IExport pTransfer, Connection targetConn, String sourceQuery,
-			String targetTable, Integer count, OnExportListener proceedListener) throws SQLException {
+	private IResult<IExport> export(IExport pTransfer, Connection targetConn, String sourceQuery, String targetTable,
+			Integer count, OnExportListener proceedListener) throws SQLException {
 		final String msgExportStarts = BaseConstants.getString("DbHandler.Transfer.Starts");
 		final String msgExportSaves = BaseConstants.getString("DbHandler.Transfer.Saves");
 		final String msgExportSaved = BaseConstants.getString("DbHandler.Transfer.Saved");
@@ -1128,11 +1219,11 @@ public class DbHandler<T> implements IHandler<T> {
 				res.setSuccess(true);
 				res.setData(pTransfer);
 				res.setMessage(msg);
-			}catch (Exception e) {
+			} catch (Exception e) {
 				e.printStackTrace();
 			}
 
-		}catch (Exception e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		return res;

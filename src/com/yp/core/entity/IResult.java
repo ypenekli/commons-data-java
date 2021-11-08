@@ -19,4 +19,8 @@ public interface IResult<T> extends Serializable {
 	int getErrorcode();
 
 	void setErrorcode(int pErrorcode);
+
+	int getDataLength();
+
+	void setDataLength(int pDataLength);
 }
