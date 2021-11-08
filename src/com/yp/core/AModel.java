@@ -331,12 +331,12 @@ public abstract class AModel<T> {
 		return handler.findAny(pQuery);
 	}
 
-	public IResult<List<IDataEntity>> findAny(final DbCommand pQuery, final Type pOutType, final Pager pPager) {
-		return handler.findAny(pQuery, pOutType, pPager);
+	public IResult<List<IDataEntity>> findPageAny(final DbCommand pQuery, final Type pOutType, final Pager pPager) {
+		return handler.findPageAny(pQuery, pOutType, pPager);
 	}
 
-	public IResult<List<T>> findAny(final DbCommand pQuery, final Pager pPager) {
-		return handler.findAny(pQuery, pPager);
+	public IResult<List<T>> findPageAny(final DbCommand pQuery, final Pager pPager) {
+		return handler.findPageAny(pQuery, pPager);
 	}
 
 	public IResult<T> save(final T pData) {

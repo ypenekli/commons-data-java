@@ -105,7 +105,118 @@ public class JsonHandler<T> implements IHandler<T> {
 	}
 
 	// downloadAnyFromServer
-	public IResult<List<T>> getAny(String pFnName, Pager pPager, FnParam[] pParams) throws IOException {
+		public List<T> getAny(String pFnName, FnParam[] pParams) throws IOException {
+			GsonBuilder gb = new GsonBuilder();
+			gb.registerTypeAdapter(IElement.class, new ElementSerializer());
+			gb.setFieldNamingPolicy(FieldNamingPolicy.IDENTITY);
+
+			Gson gson = gb.create();
+
+			FnParam[] params;
+			if (pParams != null && pParams.length > 0) {
+				params = new FnParam[pParams.length + 2];
+				for (int i = 0; i < pParams.length; i++) {
+					params[i + 2] = pParams[i];
+				}
+			} else
+				params = new FnParam[2];
+
+			Class<T> entityType = getTypeParameterClass();
+			params[0] = new FnParam(CLASS_NAME, getClassName(entityType));
+			params[1] = new FnParam(PAGER, new Pager());
+
+			String in = String.format(JSON_FORMAT, gson.toJson(params));
+
+			HttpURLConnection conn = getConnection(pFnName, HTTP_METHOD.GET);
+
+			OutputStream os = conn.getOutputStream();
+			os.write(in.getBytes(StandardCharsets.UTF_8));
+			os.flush();
+			os.close();
+
+			token = conn.getHeaderField(AUTHORIZATION);
+			int responseCode = conn.getResponseCode();
+			List<T> result = null;
+			if (responseCode == HttpURLConnection.HTTP_OK) {
+				InputStream is = conn.getInputStream();
+				// String res = org.apache.commons.io.IOUtils.toString(is,
+				// StandardCharsets.UTF_8);
+
+				String res = getJsonString(is, conn.getContentEncoding());
+				Type type = TypeToken.getParameterized(ArrayList.class, entityType).getType();
+				result = gson.fromJson(res, type);
+				is.close();
+				if (result != null) {
+					int i = 1;
+					for (T e : result) {
+						IDataEntity vs = (IDataEntity) e;
+						vs.checkValues();
+						vs.setRowNum(i);
+						i += 1;
+					}
+				}
+			}
+			conn.disconnect();
+			return result;
+		}
+
+		// downloadAnyFromServer
+		public List<IDataEntity> getAny(String pFnName, Type pOutType, FnParam... pParams)
+				throws IOException {
+
+			GsonBuilder gb = new GsonBuilder();
+			gb.registerTypeAdapter(IElement.class, new ElementSerializer());
+			gb.setFieldNamingPolicy(FieldNamingPolicy.IDENTITY);
+
+			Gson gson = gb.create();
+
+			FnParam[] params;
+			if (pParams != null && pParams.length > 0) {
+				params = new FnParam[pParams.length + 2];
+				for (int i = 0; i < pParams.length; i++) {
+					params[i + 2] = pParams[i];
+				}
+			} else
+				params = new FnParam[2];
+
+			params[0] = new FnParam(CLASS_NAME, getClassName(pOutType));
+			params[1] = new FnParam(PAGER, new Pager());
+
+			String in = String.format(JSON_FORMAT, gson.toJson(params));
+			HttpURLConnection conn = getConnection(pFnName, HTTP_METHOD.GET);
+
+			OutputStream os = conn.getOutputStream();
+			os.write(in.getBytes(StandardCharsets.UTF_8));
+			os.flush();
+			os.close();
+
+			token = conn.getHeaderField(AUTHORIZATION);
+			int responseCode = conn.getResponseCode();
+			List<IDataEntity> result = null;
+			if (responseCode == HttpURLConnection.HTTP_OK) {
+				InputStream is = conn.getInputStream();
+				// String res = org.apache.commons.io.IOUtils.toString(is,
+				// StandardCharsets.UTF_8);
+				String res = getJsonString(is, conn.getContentEncoding());
+				Type type = TypeToken.getParameterized(ArrayList.class, pOutType).getType();
+				result = gson.fromJson(res, type);
+				is.close();
+				if (result != null) {
+					int i = 1;
+					for (IDataEntity vs : result) {
+						vs.checkValues();
+						vs.setRowNum(i);
+						i += 1;
+					}
+				}
+			}
+			conn.disconnect();
+			return result;
+		}
+
+		
+	// downloadAnyFromServer
+	public IResult<List<T>> getPageAny(String pFnName, Pager pPager, FnParam[] pParams) throws IOException {
 		GsonBuilder gb = new GsonBuilder();
 		gb.registerTypeAdapter(IElement.class, new ElementSerializer());
 		gb.setFieldNamingPolicy(FieldNamingPolicy.IDENTITY);
@@ -162,7 +273,7 @@ public class JsonHandler<T> implements IHandler<T> {
 	}
 
 	// downloadAnyFromServer
-	public IResult<List<IDataEntity>> getAny(String pFnName, Type pOutType, Pager pPager, FnParam... pParams)
+	public IResult<List<IDataEntity>> getPageAny(String pFnName, Type pOutType, Pager pPager, FnParam... pParams)
 			throws IOException {
 
 		GsonBuilder gb = new GsonBuilder();
@@ -611,33 +722,33 @@ public class JsonHandler<T> implements IHandler<T> {
 	@Override
 	public List<IDataEntity> findAny(DbCommand pQuery, Type pOutType) {
 		String dFnName = FIND_BY + pQuery.getName();
-		IResult<List<IDataEntity>> result = new Result<>();
+		List<IDataEntity> result = null;
 		try {
-			result = getAny(dFnName, pOutType, new Pager(), pQuery.getParams());
+			result = getAny(dFnName, pOutType, pQuery.getParams());
 		} catch (IOException e) {
 			Logger.getLogger(MyLogger.NAME).log(Level.SEVERE, e.getMessage(), e);
 		}
-		return result.getData();
+		return result;
 	}
 
 	@Override
 	public List<T> findAny(DbCommand pQuery) {
 		String dFnName = FIND_BY + pQuery.getName();
-		IResult<List<T>> result = new Result<>();
+		List<T> result = null;
 		try {
-			result = getAny(dFnName, new Pager(), pQuery.getParams());
+			result = getAny(dFnName, pQuery.getParams());
 		} catch (IOException e) {
 			Logger.getLogger(MyLogger.NAME).log(Level.SEVERE, e.getMessage(), e);
 		}
-		return result.getData();
+		return result;
 	}
 
 	@Override
-	public IResult<List<IDataEntity>> findAny(DbCommand pQuery, Type pOutType, Pager pPager) {
+	public IResult<List<IDataEntity>> findPageAny(DbCommand pQuery, Type pOutType, Pager pPager) {
 		String dFnName = FIND_PAGE_BY + pQuery.getName();
 		IResult<List<IDataEntity>> res = new Result<>();
 		try {
-			res = getAny(dFnName, pOutType, pPager, pQuery.getParams());
+			res = getPageAny(dFnName, pOutType, pPager, pQuery.getParams());
 		} catch (IOException e) {
 			res.setSuccess(false);
 			res.setMessage(BaseConstants.MESSAGE_READ_ERROR);
@@ -647,11 +758,11 @@ public class JsonHandler<T> implements IHandler<T> {
 	}
 
 	@Override
-	public IResult<List<T>> findAny(DbCommand pQuery, Pager pPager) {
+	public IResult<List<T>> findPageAny(DbCommand pQuery, Pager pPager) {
 		String dFnName = FIND_PAGE_BY + pQuery.getName();
 		IResult<List<T>> res = new Result<>();
 		try {
-			res = getAny(dFnName, pPager, pQuery.getParams());
+			res = getPageAny(dFnName, pPager, pQuery.getParams());
 		} catch (IOException e) {
 			res.setSuccess(false);
 			res.setMessage(BaseConstants.MESSAGE_READ_ERROR);

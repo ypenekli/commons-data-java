@@ -7,16 +7,16 @@ public class Pager {
 
 	public Pager() {
 		super();
+		pageSize = 50;
 		pageIndex = 0;
-		pageSize = -1;
 		length = -1;
 
 	}
 
-	public Pager(int pPageIndex, int pLimit, int pCount) {
+	public Pager(int pPageSize,  int pCount, int pPageIndex) {
 		this();
 		pageIndex = pPageIndex;
-		pageSize = pLimit;
+		pageSize = pPageSize;
 		length = pCount;
 	}
 

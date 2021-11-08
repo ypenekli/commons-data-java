@@ -16,9 +16,9 @@ public interface IHandler<T> {
 
 	T find(T pDataEntity);
 
-	IResult<List<T>> findAny(DbCommand pQuery, Pager pPager);
+	IResult<List<T>> findPageAny(DbCommand pQuery, Pager pPager);
 
-	IResult<List<IDataEntity>> findAny(DbCommand pQuery, Type pOutType, Pager pPager);
+	IResult<List<IDataEntity>> findPageAny(DbCommand pQuery, Type pOutType, Pager pPager);
 
 	List<T> findAny(DbCommand pQuery);
 

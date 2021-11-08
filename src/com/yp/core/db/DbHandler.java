@@ -313,7 +313,7 @@ public class DbHandler<T> implements IHandler<T> {
 
 	@Override
 	@SuppressWarnings({ "unchecked", "rawtypes" })
-	public IResult<List<T>> findAny(DbCommand pQuery, Pager pPager) {
+	public IResult<List<T>> findPageAny(DbCommand pQuery, Pager pPager) {
 		IResult<List<T>> result = new Result<>();
 		int count = pPager.getLength();
 		refreshValues(pQuery, count < 0);
@@ -346,7 +346,7 @@ public class DbHandler<T> implements IHandler<T> {
 	}
 
 	@Override
-	public IResult<List<IDataEntity>> findAny(DbCommand pQuery, Type pOutType, Pager pPager) {
+	public IResult<List<IDataEntity>> findPageAny(DbCommand pQuery, Type pOutType, Pager pPager) {
 		IResult<List<IDataEntity>> result = new Result<>();
 		int count = pPager.getLength();
 		refreshValues(pQuery, count < 0);
