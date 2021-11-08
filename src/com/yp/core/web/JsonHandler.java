@@ -49,6 +49,7 @@ public class JsonHandler<T> implements IHandler<T> {
 	private static final String AUTHORIZATION = "Authorization";
 	private static final String FIND_ONE = "findOne@";
 	private static final String FIND_BY = "findBy@";
+	private static final String FIND_PAGE_BY = "findPageBy@";
 
 	private static String token = "";
 
@@ -633,7 +634,7 @@ public class JsonHandler<T> implements IHandler<T> {
 
 	@Override
 	public IResult<List<IDataEntity>> findAny(DbCommand pQuery, Type pOutType, Pager pPager) {
-		String dFnName = FIND_BY + pQuery.getName();
+		String dFnName = FIND_PAGE_BY + pQuery.getName();
 		IResult<List<IDataEntity>> res = new Result<>();
 		try {
 			res = getAny(dFnName, pOutType, pPager, pQuery.getParams());
@@ -647,7 +648,7 @@ public class JsonHandler<T> implements IHandler<T> {
 
 	@Override
 	public IResult<List<T>> findAny(DbCommand pQuery, Pager pPager) {
-		String dFnName = FIND_BY + pQuery.getName();
+		String dFnName = FIND_PAGE_BY + pQuery.getName();
 		IResult<List<T>> res = new Result<>();
 		try {
 			res = getAny(dFnName, pPager, pQuery.getParams());
