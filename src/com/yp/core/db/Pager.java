@@ -13,11 +13,9 @@ public class Pager {
 
 	}
 
-	public Pager(int pPageSize,  int pCount, int pPageIndex) {
-		this();
-		pageIndex = pPageIndex;
+	public Pager(int pPageSize) {
+		this();		
 		pageSize = pPageSize;
-		length = pCount;
 	}
 
 	public int getPageIndex() {
@@ -42,6 +40,12 @@ public class Pager {
 
 	public void setLength(int pCount) {
 		length = pCount;
+	}
+	
+	public void reset(int pageSize) {
+		this.pageSize = pageSize;
+		pageIndex = 0;
+		length = -1;
 	}
 
 }
